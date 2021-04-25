@@ -6,13 +6,13 @@ from django.http import HttpResponse
 import tensorflow.keras as keras
 from . import data
 import os
-import time
 from django.views.decorators.csrf import csrf_exempt
 import skimage.io as io
 import skimage.transform as trans
 import numpy as np
-from PIL import Image
 from io import BytesIO
+import cv2
+
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
@@ -36,17 +36,15 @@ result = model.predict(img, verbose=1)
 
 @csrf_exempt
 def slot(request):
-    print(request.POST.get('isVertical'))
-    # print(request.POST.get('pic'))
-    isVertical = 1
-    if(request.POST.get('isVertical') == "0"):
-        isVertical = 0
+    isVertical = request.POST.get('isVertical')
+    print(type(isVertical))
     stringdata = request.POST.get('pic')
     img_bytes = base64.b64decode(stringdata)
     bytes_stream = BytesIO(img_bytes)
     # io.imsave("./a.png", bytes_stream)
     img = io.imread(bytes_stream)
-    io.imsave("./aa.png",img)  #传过来了~
+    bytes_stream.close()
+    # io.imsave("./aa.png",img)  #传过来了~
     img = img / 255
     print(type(img)) 
     img = trans.resize(img, (256, 256))
@@ -54,22 +52,29 @@ def slot(request):
     img = np.reshape(img, (1,) + img.shape)
     result = model.predict(img, verbose=1)
     result = result[0, :, :, 0]
-    io.imsave("./resultaa.png",result)  ## 也确实预测出来了
-    colSum = np.sum(result,axis=isVertical)
+    result = np.float32(result)
+    # io.imsave("./resultaa.png",result)  ## 也确实预测出来了
+    if isVertical == "1":
+        colSum = np.sum(result,axis=0)
+    else:
+        colSum = np.sum(result,axis=1)
+    # print(colSum)
     max = np.max(colSum)
     min = np.min(colSum)
     delta = max - min
-    colSum = (colSum - min)/delta
+    colSum = ((colSum - min) * 1.0)/delta
     smallIndex = []
     for i in range(256):
         if colSum[i] <=0.6:
             smallIndex.append(i)
     indexMean = np.mean(smallIndex)
+    print(indexMean,len(smallIndex))
     c1 = -1
     c2 = -1
+    print(indexMean)
     if(len(smallIndex)>1):
         c1 = int(np.mean([x for x in smallIndex if x < indexMean]))*2
-        c2 = int(np.mean([x for x in smallIndex if x > indexMean]))*2
+        c2 = int(np.mean([x for x in smallIndex if x >= indexMean]))*2
     response = []
     dict = {}
     dict['index1'] = c1
