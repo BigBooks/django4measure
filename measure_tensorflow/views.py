@@ -1,3 +1,7 @@
+from tensorflow.compat.v1 import InteractiveSession
+from tensorflow.compat.v1 import ConfigProto
+from io import BytesIO
+import base64
 from django.http import HttpResponse
 import tensorflow.keras as keras
 from . import data
@@ -7,13 +11,12 @@ from django.views.decorators.csrf import csrf_exempt
 import skimage.io as io
 import skimage.transform as trans
 import numpy as np
-from keras.preprocessing.image import ImageDataGenerator
-import glob
+from PIL import Image
+from io import BytesIO
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
-##提前加载好，以后预测的时候就速度快了
+
+# 提前加载好，以后预测的时候就速度快了
 model = keras.models.load_model(r"D:\i3c\unet_model.hdf5")
 model.load_weights(r"D:\i3c\unet_weight.hdf5")
 print("load successful")
@@ -28,25 +31,31 @@ img = trans.resize(img, (256, 256))
 img = np.reshape(img, img.shape + (1,)) if (not False) else img
 img = np.reshape(img, (1,) + img.shape)
 result = model.predict(img, verbose=1)
-#提前加载好，以后预测的时候就速度快了
+# 提前加载好，以后预测的时候就速度快了
+
 
 @csrf_exempt
 def slot(request):
-    isVertical = request.POST['isVertical']
-    print(isVertical)
-    # return HttpResponse(2)
-
-    img = io.imread(os.path.join("~/Desktop","test.png"), as_gray=True)
+    print(request.POST.get('isVertical'))
+    # print(request.POST.get('pic'))
+    isVertical = 1
+    if(request.POST.get('isVertical') == "0"):
+        isVertical = 0
+    stringdata = request.POST.get('pic')
+    img_bytes = base64.b64decode(stringdata)
+    bytes_stream = BytesIO(img_bytes)
+    # io.imsave("./a.png", bytes_stream)
+    img = io.imread(bytes_stream)
+    io.imsave("./aa.png",img)  #传过来了~
     img = img / 255
+    print(type(img)) 
     img = trans.resize(img, (256, 256))
     img = np.reshape(img, img.shape + (1,)) if (not False) else img
     img = np.reshape(img, (1,) + img.shape)
     result = model.predict(img, verbose=1)
     result = result[0, :, :, 0]
-    axis = 1
-    if(isVertical == True):
-        axis =0
-    colSum = np.sum(result,axis=axis)
+    io.imsave("./resultaa.png",result)  ## 也确实预测出来了
+    colSum = np.sum(result,axis=isVertical)
     max = np.max(colSum)
     min = np.min(colSum)
     delta = max - min
@@ -61,12 +70,12 @@ def slot(request):
     if(len(smallIndex)>1):
         c1 = int(np.mean([x for x in smallIndex if x < indexMean]))*2
         c2 = int(np.mean([x for x in smallIndex if x > indexMean]))*2
-    response  = []
+    response = []
     dict = {}
     dict['index1'] = c1
     dict['index2'] = c2
     response.append(dict)
-    return HttpResponse(response,content_type="application/json")
+    return HttpResponse(response, content_type="application/json")
 
 
 # def params_post(request):
