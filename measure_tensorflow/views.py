@@ -17,7 +17,7 @@ os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 
 # 提前加载好，以后预测的时候就速度快了
-model = keras.models.load_model(r"D:\i3c\unet_model.hdf5")
+model = keras.models.load_model(r"D:\i3c\unet_model.hdf5")  ##两个模型文件的位置，最好写绝对路径吧
 model.load_weights(r"D:\i3c\unet_weight.hdf5")
 print("load successful")
 
@@ -37,12 +37,12 @@ result = model.predict(img, verbose=1)
 @csrf_exempt
 def slot(request):
     isVertical = request.POST.get('isVertical')
-    print(type(isVertical))
+    # print(type(isVertical))
     stringdata = request.POST.get('pic')
     img_bytes = base64.b64decode(stringdata)
-    bytes_stream = BytesIO(img_bytes)
+    bytes_stream = BytesIO(img_bytes)  
     # io.imsave("./a.png", bytes_stream)
-    img = io.imread(bytes_stream)
+    img = io.imread(bytes_stream)  ##base64转图片
     bytes_stream.close()
     # io.imsave("./aa.png",img)  #传过来了~
     img = img / 255
