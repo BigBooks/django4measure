@@ -19,4 +19,5 @@ from . import views
 
 urlpatterns = [
     path('slot', views.slot, name='slot'),
+    path('hole', views.hole, name='hole')
 ]
