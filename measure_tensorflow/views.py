@@ -12,10 +12,22 @@ import skimage.transform as trans
 import numpy as np
 from io import BytesIO
 import cv2
+import os
+import sys
+import numpy as np
+import csv
+import setproctitle
+import time
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.applications.vgg16 import VGG16
+from PIL import Image, ImageDraw
 
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
-
+# -----------------------------槽的模型加载及预测试---------------------
 # 提前加载好，以后预测的时候就速度快了
 model = keras.models.load_model(r"D:\i3c\unet_model.hdf5")  ##两个模型文件的位置，最好写绝对路径吧
 model.load_weights(r"D:\i3c\unet_weight.hdf5")
@@ -32,7 +44,26 @@ img = np.reshape(img, img.shape + (1,)) if (not False) else img
 img = np.reshape(img, (1,) + img.shape)
 result = model.predict(img, verbose=1)
 # 提前加载好，以后预测的时候就速度快了
+# -----------------------------槽的模型加载及预测试---------------------
 
+
+
+# -----------------------------孔的模型加载及预测试---------------------
+
+
+
+
+
+
+
+
+
+# -----------------------------孔的模型加载及预测试---------------------
+
+
+
+
+# -----------------------------槽的测试逻辑，返回的是槽的两个横坐标---------------------
 
 @csrf_exempt
 def slot(request):
@@ -81,17 +112,9 @@ def slot(request):
     dict['index2'] = c2
     response.append(dict)
     return HttpResponse(response, content_type="application/json")
+# -----------------------------槽的测试逻辑，返回的是槽的两个横坐标---------------------
 
 
-# def params_post(request):
-#     if request.method=='GET':
-#         return render(request,'post.html')
-#     else:
-#         myFile = request.FILES.get("pic", None)
-#         destination = open(os.path.join(BASE_DIR, myFile.name), 'wb+')  # 打开特定的文件进行二进制的写操作
-#         for chunk in myFile.chunks():  # 分块写入文件
-#             destination.write(chunk)
-#         destination.close()
-#         username=request.POST.get('username','')
-#         password=request.POST.get('password','')
-#         return HttpResponse('username='+username+"&password="+password)
+# -----------------------------孔的测试逻辑，返回的是孔的圆心坐标，及半径---------------------
+
+# -----------------------------孔的测试逻辑，返回的是孔的圆心坐标，及半径---------------------
