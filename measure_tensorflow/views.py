@@ -135,6 +135,7 @@ def hole(request):
     img_bytes = base64.b64decode(stringdata)
     bytes_stream = BytesIO(img_bytes)
     img = Image.open(bytes_stream).resize((IMAGE_H, IMAGE_W), Image.LINEAR)
+    bytes_stream.close()
     x = []
     x.append(np.reshape(np.array(img, 'f'), (IMAGE_H, IMAGE_W, 3)))
     x = np.array(x, dtype=np.float32) / 255.0
