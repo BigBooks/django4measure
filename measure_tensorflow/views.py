@@ -37,8 +37,8 @@ session = InteractiveSession(config=config)
 # -----------------------------槽的模型加载及预测试---------------------
 # 提前加载好，以后预测的时候就速度快了
 slotModel = keras.models.load_model(
-    r"D:\unet\modelFile\slot0528R\unet_model.hdf5")  # 两个模型文件的位置，最好写绝对路径吧
-slotModel.load_weights(r"D:\unet\modelFile\slot0528R\unet_weight.hdf5")
+    r"E:\data\unet_model.hdf5")  # 两个模型文件的位置，最好写绝对路径吧
+slotModel.load_weights(r"E:\data\unet_weight.hdf5")
 img = io.imread("./slotTest.png", as_gray=True)
 img = img / 255
 img = trans.resize(img, (256, 256))
@@ -53,28 +53,28 @@ print("load and test slot model successfully")
 # -----------------------------槽的模型加载及预测试---------------------
 
 
-# -----------------------------孔的模型加载及预测试---------------------
-IMAGE_W = 224  # 图片大小
-IMAGE_H = 224
-OUTPUT_PARAMS = 3  # x, y, radius
-holeModel = keras.models.load_model(r"E:\data\hole-vgg.hdf5")  # 圆孔的模型
-# holeModel.summary()
-x = []
-img = Image.open("./holeTest.png").resize((IMAGE_H, IMAGE_W), Image.LINEAR)
-x.append(np.reshape(np.array(img, 'f'), (IMAGE_H, IMAGE_W, 3)))
-x = np.array(x, dtype=np.float32) / 255.0
-# print(x)
-result = holeModel.predict(x, verbose=1)
-print("load and test hole model successfully")
-# result = result[0]*IMAGE_H
-# x, y, r = result
-# print(result)
-# img = cv2.imread("./holeTest.png")
-# cv2.circle(img, (x, y), int(r), (0, 0, 255), 1)
-# cv2.imwrite("./holeResult.png",img)
-# print(result)
+# # -----------------------------孔的模型加载及预测试---------------------
+# IMAGE_W = 224  # 图片大小
+# IMAGE_H = 224
+# OUTPUT_PARAMS = 3  # x, y, radius
+# holeModel = keras.models.load_model(r"E:\data\hole-vgg.hdf5")  # 圆孔的模型
+# # holeModel.summary()
+# x = []
+# img = Image.open("./holeTest.png").resize((IMAGE_H, IMAGE_W), Image.LINEAR)
+# x.append(np.reshape(np.array(img, 'f'), (IMAGE_H, IMAGE_W, 3)))
+# x = np.array(x, dtype=np.float32) / 255.0
+# # print(x)
+# result = holeModel.predict(x, verbose=1)
+# print("load and test hole model successfully")
+# # result = result[0]*IMAGE_H
+# # x, y, r = result
+# # print(result)
+# # img = cv2.imread("./holeTest.png")
+# # cv2.circle(img, (x, y), int(r), (0, 0, 255), 1)
+# # cv2.imwrite("./holeResult.png",img)
+# # print(result)
 
-# -----------------------------孔的模型加载及预测试---------------------
+# # -----------------------------孔的模型加载及预测试---------------------
 
 
 # -----------------------------槽的测试逻辑，返回的是槽的两个横坐标---------------------
@@ -82,7 +82,7 @@ print("load and test hole model successfully")
 @csrf_exempt
 def slot(request):
     isVertical = request.POST.get('isVertical')
-    print(type(isVertical))
+    # print(type(isVertical))
     stringdata = request.POST.get('pic')
     img_bytes = base64.b64decode(stringdata)
     bytes_stream = BytesIO(img_bytes)
@@ -91,14 +91,14 @@ def slot(request):
     bytes_stream.close()
     # io.imsave("./aa.png",img)  #传过来了~
     img = img / 255
-    print(type(img))
+    # print(type(img))
     img = trans.resize(img, (256, 256))
     img = np.reshape(img, img.shape + (1,)) if (not False) else img
     img = np.reshape(img, (1,) + img.shape)
     result = slotModel.predict(img, verbose=1)
     result = result[0, :, :, 0]
     result = np.float32(result)
-    io.imsave(".\pre.png",result)  ## 也确实预测出来了
+    io.imsave(".\pre.png", result)  # 也确实预测出来了
     if isVertical == "1":
         colSum = np.sum(result, axis=0)
     else:
@@ -112,17 +112,17 @@ def slot(request):
     for i in range(256):
         if colSum[i] <= 0.6:
             smallIndex.append(i)
-    print(len(smallIndex))
-    if len(smallIndex)<10:
+    # print(len(smallIndex))
+    if len(smallIndex) < 10:
         smallIndex.clear()
         for i in range(256):
-            if colSum[i] <=0.9:
-               smallIndex.append(i)
+            if colSum[i] <= 0.9:
+                smallIndex.append(i)
     indexMean = np.mean(smallIndex)
-    print(indexMean, len(smallIndex))
+    # print(indexMean, len(smallIndex))
     c1 = -1
     c2 = -1
-    print(indexMean)
+    # print(indexMean)
     if(len(smallIndex) > 1):
         c1 = int(np.mean([x for x in smallIndex if x < indexMean]))*2
         c2 = int(np.mean([x for x in smallIndex if x >= indexMean]))*2
@@ -130,8 +130,9 @@ def slot(request):
     dict = {}
     dict['index1'] = c1
     dict['index2'] = c2
-    dict['index3']=colSum[int(c1/2)]
-    dict['index4']=colSum[int(c2/2)]
+    dict['index3'] = colSum[int(c1/2)]
+    dict['index4'] = colSum[int(c2/2)]
+    print(dict)
     response.append(dict)
     return HttpResponse(response, content_type="application/json")
 # -----------------------------槽的测试逻辑，返回的是槽的两个横坐标---------------------
@@ -158,6 +159,7 @@ def hole(request):
     dict = {}
     dict['x'], dict['y'], dict['r'] = result
     response.append(dict)
-    return HttpResponse(response, content_type="application/json")
+    print(x, y, r)
     bytes_stream.close()
+    return HttpResponse(response, content_type="application/json")
 # -----------------------------孔的测试逻辑，返回的是孔的圆心坐标，及半径---------------------
