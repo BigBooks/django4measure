@@ -37,8 +37,8 @@ session = InteractiveSession(config=config)
 # -----------------------------槽的模型加载及预测试---------------------
 # 提前加载好，以后预测的时候就速度快了
 slotModel = keras.models.load_model(
-    r"E:\data\unet_model.hdf5")  # 两个模型文件的位置，最好写绝对路径吧
-slotModel.load_weights(r"E:\data\unet_weight.hdf5")
+    r"D:\unet\modelFile\slot0528R\unet_model.hdf5")  # 两个模型文件的位置，最好写绝对路径吧
+slotModel.load_weights(r"D:\unet\modelFile\slot0528R\unet_weight.hdf5")
 img = io.imread("./slotTest.png", as_gray=True)
 img = img / 255
 img = trans.resize(img, (256, 256))
@@ -82,6 +82,8 @@ print("load and test slot model successfully")
 @csrf_exempt
 def slot(request):
     isVertical = request.POST.get('isVertical')
+    tag = request.POST.get('tag')
+
     # print(type(isVertical))
     stringdata = request.POST.get('pic')
     img_bytes = base64.b64decode(stringdata)
@@ -98,7 +100,7 @@ def slot(request):
     result = slotModel.predict(img, verbose=1)
     result = result[0, :, :, 0]
     result = np.float32(result)
-    io.imsave(".\pre.png", result)  # 也确实预测出来了
+#     io.imsave(".\pre/"+tag+".png", result)  # 也确实预测出来了
     if isVertical == "1":
         colSum = np.sum(result, axis=0)
     else:
@@ -106,14 +108,23 @@ def slot(request):
     # print(colSum)
     max = np.max(colSum)
     min = np.min(colSum)
+#     print("max is:",max)
+#     print("min is:",min)
     delta = max - min
     colSum = ((colSum - min) * 1.0)/delta
     smallIndex = []
+    print(tag)
     for i in range(256):
+#         print("colsum:",colSum[i])
         if colSum[i] <= 0.6:
             smallIndex.append(i)
-    # print(len(smallIndex))
-    if len(smallIndex) < 10:
+#     print("the first time samallindex is:",len(smallIndex))
+    if delta<18 or len(smallIndex)>20:
+       print("there is no slot")
+       response = []
+       response.append(0)
+       return HttpResponse(response, content_type="application/json")
+    elif len(smallIndex) < 10:
         smallIndex.clear()
         for i in range(256):
             if colSum[i] <= 0.9:
