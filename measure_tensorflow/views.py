@@ -84,7 +84,7 @@ def slot(request):
     isVertical = request.POST.get('isVertical')
     tag = request.POST.get('tag')
 
-    # print(type(isVertical))
+    print("isvertical",isVertical)
     stringdata = request.POST.get('pic')
     img_bytes = base64.b64decode(stringdata)
     bytes_stream = BytesIO(img_bytes)
@@ -93,24 +93,90 @@ def slot(request):
     bytes_stream.close()
     # io.imsave("./aa.png",img)  #传过来了~
     img = img / 255
-    # print(type(img))
     img = trans.resize(img, (256, 256))
     img = np.reshape(img, img.shape + (1,)) if (not False) else img
     img = np.reshape(img, (1,) + img.shape)
     result = slotModel.predict(img, verbose=1)
     result = result[0, :, :, 0]
     result = np.float32(result)
-#     io.imsave(".\pre/"+tag+".png", result)  # 也确实预测出来了
+    io.imsave(".\pre/"+tag+".png", result)  # 也确实预测出来了
+    
+    
+    #####################槽识别canny+hough法########################
+#     if isVertical == "1":
+#        colSum = np.sum(result, axis=0)
+#     else:
+#        colSum = np.sum(result, axis=1)
+#     max = np.max(colSum)
+#     min = np.min(colSum)
+#     delta = max - min
+#     colSum = ((colSum - min) * 1.0)/delta
+#     gray = np.uint8(np.interp(result, (result.min(),result.max()), (0, 255)))
+# #     gray=np.uint8(result)
+# #     gray = cv2.blur(gray, (3, 3))
+# #     gray = cv2.medianBlur(gray, 5)
+# #     gray=cv2.bilateralFilter(gray,9,75,75)
+#     grad_x = cv2.Sobel(gray,cv2.CV_16SC1,1,0)  #用sobel算子求梯度。最后两个参数就是说是求的x,还是y的梯度
+#     grad_y = cv2.Sobel(gray,cv2.CV_16SC1,0,1)
+#     edge = cv2.Canny(grad_x,grad_y,30,150)
+# #     cv2.imshow('canny', edge)
+# #     cv2.waitKey(0)
+#     lines = cv2.HoughLinesP(edge, 1,np.pi/180, 100, 230, 10)
+# #     lines= cv2.HoughLines(edge, 1, np.pi/180, 110)
+#     print("here is lines",type(lines))
+#     test=None
+#     isexist=isinstance(lines,type(test))
+#     print("test type",type(test))
+#     print("here is type",isexist)
+#     
+#     if isexist==False:
+#        print("lines[1]is:",lines[1])
+#        print(lines)
+#        slot_l=[] # 存放所有检测到的线条的长度数据，便于找出最长的两条直线
+#        slot_waist=[]   #存放检测到的直线的横/纵坐标数据，用于确定最终的槽的侧边坐标
+#        for i in range(len(lines)):
+#            for x1, y1, x2, y2 in lines[i]:
+# #                cv2.line(result, (x1, y1), (x2, y2), (0,255,0), 2)
+#                if isVertical == "1":
+# #                   slot_l.append(abs(y1-y2))
+#                   slot_waist.append(x1)
+# 
+#                else:
+# #                   slot_l.append(abs(x1-x2))
+#                   slot_waist.append(y1)
+#            print("slot_waist",slot_waist)
+#        c1=int(np.min(slot_waist))
+#        c2=int(np.max(slot_waist))
+#        print(type(c1))
+#        response = []
+#        dict = {}
+#        dict['index1'] = int(c1)*2
+#        dict['index2'] = int(c2)*2
+#        dict['index3'] = colSum[int(c1)]
+#        dict['index4'] = colSum[int(c2)]
+#        print(dict)
+#        response.append(dict)
+#     else:
+#        print("there is no slot")
+#        response = []
+#        response.append(0)
+#        #        return HttpResponse(response, content_type="application/json")
+#        
+#     return HttpResponse(response, content_type="application/json")
+
+    #####################槽识别canny+houghline法########################
+    
     if isVertical == "1":
         colSum = np.sum(result, axis=0)
     else:
         colSum = np.sum(result, axis=1)
-    # print(colSum)
+#     print(colSum)
     max = np.max(colSum)
     min = np.min(colSum)
 #     print("max is:",max)
 #     print("min is:",min)
     delta = max - min
+    print(delta)
     colSum = ((colSum - min) * 1.0)/delta
     smallIndex = []
     print(tag)
@@ -118,8 +184,9 @@ def slot(request):
 #         print("colsum:",colSum[i])
         if colSum[i] <= 0.6:
             smallIndex.append(i)
-#     print("the first time samallindex is:",len(smallIndex))
-    if delta<18 or len(smallIndex)>20:
+    print("the first time samallindex is:",len(smallIndex))
+    # if  delta<18 or len(smallIndex)>20:
+    if  len(smallIndex)>20:
        print("there is no slot")
        response = []
        response.append(0)
@@ -130,13 +197,13 @@ def slot(request):
             if colSum[i] <= 0.9:
                 smallIndex.append(i)
     indexMean = np.mean(smallIndex)
-    # print(indexMean, len(smallIndex))
+    print(indexMean, len(smallIndex))
     c1 = -1
     c2 = -1
-    # print(indexMean)
+    print(indexMean)
     if(len(smallIndex) > 1):
-        c1 = int(np.mean([x for x in smallIndex if x < indexMean]))*2
-        c2 = int(np.mean([x for x in smallIndex if x >= indexMean]))*2
+        c1 = int((np.mean([x for x in smallIndex if x < indexMean]))*2.0)
+        c2 = int((np.mean([x for x in smallIndex if x >= indexMean]))*2.0)
     response = []
     dict = {}
     dict['index1'] = c1
